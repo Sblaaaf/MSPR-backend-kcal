@@ -1,0 +1,129 @@
+# HealthAI  Module IA / Analyse Nutritionnelle
+
+Module d'intelligence artificielle du projet **Jarmy**, développé dans le cadre de la formation Concepteur Développeur d'Applications (RNCP36581  Bloc E6.1).
+
+Ce module est **indépendant** et peut sintégrer dans un backend FastAPI, Flask, ou un microservice Python.
+
+---
+
+##  Objectif
+
+Entrer un repas en texte libre, extraire les aliments et quantités, calculer les calories totales.
+
+Exemples :
+
+- "2 eggs and a banana"  293 kcal
+- "200g of grilled chicken with brown rice and broccoli"  532 kcal
+- "pizza and french fries with a soda"  828 kcal
+- "had chiken and rise"  482 kcal (corrections de fautes via synonyme/approximation)
+
+---
+
+##  Architecture globale et flow
+
+1. `app.py` : mode interactif (CLI) + tests.
+2. `analyze.py` : orchestration du parsing et calcul kcal.
+3. `nlp/parser.py` : parsing via modèle spaCy NER + normalisation/synonymes/quantités.
+4. `data/nutrition_data.py` : base nutritionnelle (CSV) en kcal/100g.
+5. `nlp/train_ner.py` : entraînement du modèle spaCy.
+
+Flow :
+
+- texte libre  `nlp/parser.parse` (`spaCy` NER)  entités FOOD/QUANTITY
+- résolution FOOD (synonymes + fuzzy matching)  `FOOD_DB`
+- conversion quantités via `UNITS`, `PORTIONS`, parsing `QUANTITY`
+- calcul kcal par aliment + total
+- résultat structuré (`MealResult`)
+
+---
+
+##  Stack technique
+
+- Python 3.11+ (type hints modernes)
+- spaCy (NER, pipeline, modèle custom) : `nlp/food_ner_model`
+- `pandas` non nécessaire (données CSV traitées en Python pur)
+- Fichiers de données : `data/kaggle_nutrition.csv`, `data/training_sentences.json`
+- Dualité FR/EN dans les entrées via synonyme et normalisation
+
+---
+
+##  Détails des fichiers
+
+- `README` : documentation projet.
+- `app.py` : interface CLI, tests, affichage.
+- `analyze.py` : `analyze(text) -> MealResult`.
+- `nlp/parser.py` :
+  - `_load_model` : charge spaCy, modèle `nlp/food_ner_model`.
+  - `_match_food` : normalise, synonymes, fallback fuzzy.
+  - `_qty_from_text` : parse quantités (g, kg, ml, oz, lb, unités mots).
+  - `parse` : pivot FOOD+QUANTITY  liste ditems.
+- `nlp/train_ner.py` : entraîne spaCy NER depuis `training_sentences.json`.
+- `data/nutrition_data.py` : chargement CSV + fallback si CSV indisponible.
+
+---
+
+##  Installation
+
+```powershell
+python -m pip install -U pip
+pip install spacy
+python -m spacy download en_core_web_sm
+```
+
+---
+
+##  Entraînement du modèle (obligatoire avant utilisation)
+
+```powershell
+python nlp/train_ner.py
+```
+
+- génère `nlp/food_ner_model`
+- si ce dossier est absent : `parser.parse` lève `FileNotFoundError` clairement.
+
+---
+
+##  Exécution
+
+```powershell
+python app.py
+```
+
+- mode interactif : tape un repas en anglais/français
+- `test` : lance exemples automatiques
+- `quit` : sortie
+
+---
+
+##  Personnalisation possible
+
+- enrichir `data/kaggle_nutrition.csv` pour + daliments.
+- ajuster `SYNONYMS` dans `nlp/parser.py` pour pire fautes/tokens.
+- ajuster `PORTIONS` et `UNITS` selon usages locaux.
+- ajouter exemples dans `data/training_sentences.json` puis relancer lentraînement.
+
+---
+
+## ? Comportement actuel (à noter)
+
+- le parsing est strictement basé sur spaCy NER (modèle custom).
+- plus de fallback regex dédié pour les entités.
+- seules les entités détectées par spaCy sont utilisées ; la robustesse dépend de la qualité du model.
+- `SYNONYMS` + fuzzy matching atténuent les erreurs de langue / typo.
+
+---
+
+##  Intégration API
+
+```python
+from analyze import analyze
+r = analyze("200g chicken and rice")
+print(r.total_kcal, r.items, r.message)
+```
+
+---
+
+##  Sources de données
+
+- kaggle_nutrition.csv : dataset Kaggle "Daily Food & Nutrition Dataset"
+- enrichissements manuels (fast-food, plats du quotidien)

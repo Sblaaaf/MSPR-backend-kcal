@@ -4,3 +4,5 @@ spacy
 fastapi
 uvicorn
 python-dotenv>=1.0
+httpx
+python-multipart

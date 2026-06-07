@@ -47,38 +47,42 @@ def _tokens(s: str) -> list[str]:
     return [w for w in re.findall(r"[a-z]+", s.lower()) if len(w) >= 3]
 
 
+def _has_macros(row: dict) -> int:
+    """1 si la ligne porte des macros exploitables (sinon des lignes 'calories seules'
+    du catalogue gagneraient l'égalité exacte et afficheraient P0/G0/L0)."""
+    v = row.get("proteines_g")
+    return 1 if isinstance(v, (int, float)) and v > 0 else 0
+
+
 def _best_match(q: str, rows: list[dict]) -> dict:
     """
-    Classe les candidats par recouvrement de mots avec la requête :
-      1. égalité exacte
-      2. max de mots de la requête présents ; à égalité, moins de mots "en trop", puis plus court
-      3. repli flou (difflib) si aucun mot commun
-      4. nom le plus court (le moins "bruité")
-    Évite les faux positifs type « red bell pepper » -> « Black Pepper ».
+    Classe les candidats LIKE par, dans l'ordre :
+      1. présence de macros (préférer une ligne complète à une ligne 'calories seules')
+      2. nom exactement égal à la requête
+      3. nombre de mots de la requête présents (recouvrement)
+      4. moins de mots "en trop", puis nom le plus court (le moins bruité)
+    Repli flou (difflib) si aucun mot commun, sinon nom le plus court.
+    Évite « red bell pepper » -> « Black Pepper » et « rice » -> ligne sans macros.
     """
     norm = [(str(r["nom"]).lower(), r) for r in rows]
-    for n, r in norm:                                  # 1. égalité exacte
-        if n == q:
-            return r
-
     q_tokens = set(_tokens(q))
     best, best_key = None, None
-    for n, r in norm:                                  # 2. recouvrement de mots
+    for n, r in norm:
         n_tokens = set(_tokens(n))
         overlap = len(q_tokens & n_tokens)
-        if overlap == 0:
+        exact = 1 if n == q else 0
+        if overlap == 0 and not exact:
             continue
-        # plus de recouvrement > moins de mots superflus > nom plus court
-        key = (overlap, -len(n_tokens - q_tokens), -len(n))
+        key = (_has_macros(r), exact, overlap, -len(n_tokens - q_tokens), -len(n))
         if best_key is None or key > best_key:
             best, best_key = r, key
     if best is not None:
         return best
 
-    close = get_close_matches(q, [n for n, _ in norm], n=1, cutoff=0.6)  # 3. flou
+    close = get_close_matches(q, [n for n, _ in norm], n=1, cutoff=0.6)  # repli flou
     if close:
         return dict(norm)[close[0]]
-    return min(norm, key=lambda x: len(x[0]))[1]        # 4. nom le plus court
+    return min(norm, key=lambda x: len(x[0]))[1]        # repli : nom le plus court
 
 
 def _search(query: str) -> list[dict]:

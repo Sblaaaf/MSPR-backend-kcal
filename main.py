@@ -33,7 +33,7 @@ app.add_middleware(
 
 SECRET_TOKEN = os.getenv("KCAL_SECRET_TOKEN", "clesecrete")
 HF_TOKEN = os.getenv("HF_TOKEN", "")
-HF_API_URL = "https://api-inference.huggingface.co/models/nateraw/food"
+HF_API_URL = "https://router.huggingface.co/hf-inference/models/nateraw/food"
 security = HTTPBearer()
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -73,7 +73,10 @@ async def analyze_image_route(file: UploadFile = File(...), token: str = Depends
     """
     image_bytes = await file.read()
 
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    headers = {
+        "Authorization": f"Bearer {HF_TOKEN}",
+        "Content-Type": file.content_type or "image/jpeg",
+    }
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(HF_API_URL, headers=headers, content=image_bytes)

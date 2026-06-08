@@ -96,18 +96,18 @@ def test_analyze_complex_meal():
 
 
 # ---------------------------------------------------------------------------
-# /analyze-image — vision endpoint (HuggingFace mocked)
+# /analyze-image — vision endpoint
+#
+# La reconnaissance est déléguée à vision.recognize() (provider Claude ou
+# HuggingFace selon VISION_PROVIDER, avec bascule automatique). On teste donc
+# le comportement de la ROUTE en simulant ce point d'entrée unique, ce qui rend
+# le test indépendant du provider réellement configuré.
 # ---------------------------------------------------------------------------
 
-FAKE_HF_RESPONSE = [
-    {"label": "rice", "score": 0.85},
-    {"label": "chicken", "score": 0.72},
-    {"label": "broccoli", "score": 0.55},
-]
-
-FAKE_HF_LOW_SCORE = [
-    {"label": "rice", "score": 0.05},
-    {"label": "chicken", "score": 0.03},
+# Ce que renvoie vision.recognize() : list[{"food", "grams", "confidence"}]
+FAKE_DETECTED = [
+    {"food": "rice", "grams": 150.0, "confidence": 0.85},
+    {"food": "chicken", "grams": 120.0, "confidence": 0.72},
 ]
 
 
@@ -117,16 +117,7 @@ def fake_image():
 
 
 def test_analyze_image_success(fake_image):
-    # httpx Response.json() is sync — use MagicMock, not AsyncMock
-    mock_resp = MagicMock()
-    mock_resp.json.return_value = FAKE_HF_RESPONSE
-    mock_resp.raise_for_status.return_value = None
-
-    with patch("main.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.post.return_value = mock_resp
-        mock_client_cls.return_value.__aenter__.return_value = mock_client
-
+    with patch("vision.recognize", return_value=FAKE_DETECTED):
         resp = client.post(
             "/analyze-image",
             headers=AUTH,
@@ -148,12 +139,9 @@ def test_analyze_image_missing_token(fake_image):
     assert resp.status_code in (401, 403)
 
 
-def test_analyze_image_hf_error(fake_image):
-    with patch("main.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.post.side_effect = Exception("HF API down")
-        mock_client_cls.return_value.__aenter__.return_value = mock_client
-
+def test_analyze_image_provider_error(fake_image):
+    # Le provider de vision lève une exception → 502 Bad Gateway
+    with patch("vision.recognize", side_effect=Exception("vision API down")):
         resp = client.post(
             "/analyze-image",
             headers=AUTH,
@@ -164,14 +152,8 @@ def test_analyze_image_hf_error(fake_image):
 
 
 def test_analyze_image_no_food_recognized(fake_image):
-    with patch("main.httpx.AsyncClient") as mock_client_cls:
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = FAKE_HF_LOW_SCORE
-        mock_resp.raise_for_status.return_value = None
-        mock_client = AsyncMock()
-        mock_client.post.return_value = mock_resp
-        mock_client_cls.return_value.__aenter__.return_value = mock_client
-
+    # Aucun aliment reconnu sur la photo → 400 Bad Request
+    with patch("vision.recognize", return_value=[]):
         resp = client.post(
             "/analyze-image",
             headers=AUTH,

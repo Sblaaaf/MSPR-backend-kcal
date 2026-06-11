@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import httpx
+from pyctuator.pyctuator import Pyctuator
 
 import vision
 from nutrition_lookup import lookup as nutrition_lookup
@@ -20,7 +20,7 @@ AI_PATH = Path(__file__).parent / "ia-kcal"
 sys.path.insert(0, str(AI_PATH))
 os.chdir(str(AI_PATH))
 
-from analyze import analyze
+from analyze import analyze  # noqa: E402
 
 app = FastAPI(
     title="JARMY",
@@ -33,6 +33,14 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+Pyctuator(
+    app,
+    "JARMY Kcal Service",
+    app_url="http://localhost:8001",
+    pyctuator_endpoint_url="http://localhost:8001/pyctuator",
+    registration_url=None,
 )
 
 SECRET_TOKEN = os.getenv("KCAL_SECRET_TOKEN", "clesecrete")

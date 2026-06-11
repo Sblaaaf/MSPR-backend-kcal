@@ -8,3 +8,6 @@ httpx
 python-multipart
 anthropic
 pillow
+pytest
+pytest-asyncio
+pyctuator

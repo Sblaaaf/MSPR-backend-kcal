@@ -6,7 +6,7 @@ import sys
 import os
 from pathlib import Path
 from io import BytesIO
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,7 +18,7 @@ os.chdir(str(IA_PATH))
 os.environ.setdefault("KCAL_SECRET_TOKEN", "clesecrete")
 os.environ.setdefault("HF_TOKEN", "fake-hf-token")
 
-from main import app
+from main import app  # noqa: E402
 
 client = TestClient(app)
 AUTH = {"Authorization": "Bearer clesecrete"}

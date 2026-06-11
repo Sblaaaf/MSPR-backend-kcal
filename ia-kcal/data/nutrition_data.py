@@ -3,7 +3,8 @@ Nutritional database — loads kaggle_nutrition.csv.
 All values normalized to kcal per 100g.
 """
 
-import re, csv
+import re
+import csv
 from pathlib import Path
 
 CSV_PATH = Path(__file__).parent / "kaggle_nutrition.csv"

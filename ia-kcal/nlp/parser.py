@@ -3,7 +3,8 @@ NLP parser — spaCy NER only.
 Run nlp/train_ner.py first to generate the model.
 """
 
-import re, sys
+import re
+import sys
 from pathlib import Path
 from difflib import get_close_matches
 

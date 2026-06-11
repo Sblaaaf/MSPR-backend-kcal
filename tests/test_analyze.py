@@ -9,10 +9,10 @@ from pathlib import Path
 IA_PATH = Path(__file__).parent.parent / "ia-kcal"
 sys.path.insert(0, str(IA_PATH))
 
-import os
+import os  # noqa: E402
 os.chdir(str(IA_PATH))
 
-from analyze import analyze, MealResult
+from analyze import analyze, MealResult  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

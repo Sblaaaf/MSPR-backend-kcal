@@ -7,7 +7,10 @@ Combines:
 Run: python nlp/train_ner.py
 """
 
-import sys, re, random, json
+import sys
+import re
+import random
+import json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -133,7 +136,8 @@ def generate_auto_data() -> list[tuple]:
                 start = 0
                 while True:
                     idx = text.find(target, start)
-                    if idx == -1: break
+                    if idx == -1:
+                        break
                     ents.append((idx, idx + len(target), "FOOD"))
                     start = idx + 1
             for m in re.finditer(r'\b(\d+g|\d+\s*grams?|\d+)\b', text):
@@ -238,7 +242,7 @@ def train():
     for text, annotations in dev_set[:100]:
         doc = nlp(text)
         predicted = {(e.start_char, e.end_char, e.label_) for e in doc.ents}
-        expected  = {(s, e, l) for s, e, l in annotations["entities"]}
+        expected = {(s, e, label) for s, e, label in annotations["entities"]}
         if predicted & expected:
             correct += 1
         total += 1

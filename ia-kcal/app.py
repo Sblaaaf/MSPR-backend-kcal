@@ -31,7 +31,7 @@ def show(result):
 
 def interactive():
     print("=" * 52)
-    print(f"  HealthAI — Calorie Counter")
+    print("  HealthAI — Calorie Counter")
     print(f"  Parser: {parser_info()}")
     print("  Type 'quit' to exit, 'test' for examples")
     print("=" * 52 + "\n")
@@ -39,9 +39,13 @@ def interactive():
         try:
             meal = input("🍽️  What did you eat? ").strip()
         except (KeyboardInterrupt, EOFError):
-            print("\nBye!"); break
-        if not meal: continue
-        if meal.lower() in ("quit","q","exit"): print("Bye!"); break
+            print("\nBye!")
+            break
+        if not meal:
+            continue
+        if meal.lower() in ("quit", "q", "exit"):
+            print("Bye!")
+            break
         if meal.lower() == "test":
             for t in TESTS:
                 print(f"\n📝 {t}")

@@ -10,4 +10,4 @@ anthropic
 pillow
 pytest
 pytest-asyncio
-pyctuator
+prometheus-fastapi-instrumentator

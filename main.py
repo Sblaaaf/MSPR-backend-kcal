@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pyctuator.pyctuator import Pyctuator
+from prometheus_fastapi_instrumentator import Instrumentator
 
 import vision
 from nutrition_lookup import lookup as nutrition_lookup
@@ -35,13 +35,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-Pyctuator(
-    app,
-    "JARMY Kcal Service",
-    app_url="http://localhost:8001",
-    pyctuator_endpoint_url="http://localhost:8001/pyctuator",
-    registration_url=None,
-)
+# Expose Prometheus metrics on /metrics (scraped by Prometheus, visualised in Grafana).
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 SECRET_TOKEN = os.getenv("KCAL_SECRET_TOKEN", "clesecrete")
 HF_TOKEN = os.getenv("HF_TOKEN", "")
